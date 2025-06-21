@@ -391,7 +391,7 @@
         };
 
         // --- Game Setup ---
-        function resizeCanvas() {
+        function setCanvasDimensions() {
             const container = document.getElementById('game-container');
             W = container.clientWidth;
             H = container.clientHeight;
@@ -400,15 +400,8 @@
         }
 
         function init() {
-            resizeCanvas();
-            window.addEventListener('resize', () => {
-                resizeCanvas();
-                generateTerrain();
-                placeTanks();
-                if (GameState.current === 'PLAY') {
-                    render();
-                }
-            });
+            setCanvasDimensions();
+            // --- CHANGED: Removed resize event listener to prevent flickering on mobile ---
 
             // UI Event Listeners
             document.getElementById('start-game-btn').addEventListener('click', () => {
