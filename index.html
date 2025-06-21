@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tank Wars</title>
+    <title>מלחמת טנקים</title>
     <style>
         /* --- General Setup --- */
         :root {
@@ -195,7 +195,8 @@
         #exit-game-btn {
             position: absolute;
             top: 10px;
-            right: 10px;
+            left: 10px; /* Changed from right to left for RTL */
+            right: auto;
             z-index: 6;
             background-color: var(--danger-color);
             color: white;
@@ -242,50 +243,49 @@
         <!-- Main Menu Overlay -->
         <div id="main-menu" class="ui-overlay">
             <div class="modal-panel">
-                <h1>Tank Wars</h1>
-                <p>A classic artillery game recreated for the web.</p>
-                <button id="start-game-btn">New Game</button>
+                <h1>מלחמת טנקים</h1>
+                <p>משחק ארטילריה קלאסי שנוצר מחדש עבור הרשת.</p>
+                <button id="start-game-btn">משחק חדש</button>
             </div>
         </div>
 
         <!-- Player Setup Overlay -->
         <div id="player-setup" class="ui-overlay hidden">
             <div class="modal-panel">
-                <h2>Game Setup</h2>
+                <h2>הגדרות משחק</h2>
                 <ul id="player-setup-list">
                     <!-- Player entries will be added here by JS -->
                 </ul>
-                <button id="add-player-btn">Add Player</button>
-                <button id="launch-game-btn">Launch Battle!</button>
-                 <button id="back-to-menu-btn" class="danger">Back</button>
+                <button id="add-player-btn">הוסף שחקן</button>
+                <button id="launch-game-btn">התחל בקרב!</button>
+                 <button id="back-to-menu-btn" class="danger">חזור</button>
             </div>
         </div>
         
         <!-- Shop Overlay -->
         <div id="shop" class="ui-overlay hidden">
              <div class="modal-panel">
-                <h2 id="shop-title">Round Over!</h2>
+                <h2 id="shop-title">הסיבוב נגמר!</h2>
                 <div id="shop-summary"></div>
-                <h3>Weapon & Item Shop</h3>
-                <div id="shop-items"></div>
-                <button id="end-shopping-btn">Ready for Next Round</button>
+                <h3>חנות כלי נשק ופריטים</h3>
+                <button id="end-shopping-btn">מוכן לסיבוב הבא</button>
             </div>
         </div>
 
         <!-- In-Game UI -->
         <div id="in-game-ui" class="hidden">
-            <button id="exit-game-btn">Exit Game</button>
+            <button id="exit-game-btn">צא מהמשחק</button>
             <div id="hud">
-                <div class="hud-item" id="hud-player"><span>Player</span><div class="hud-value">Player 1</div></div>
-                <div class="hud-item" id="hud-angle"><span>Angle</span><div class="hud-value">45°</div></div>
-                <div class="hud-item" id="hud-power"><span>Power</span><div class="hud-value">500</div></div>
-                <div class="hud-item" id="hud-weapon"><span>Weapon</span><div class="hud-value">Missile</div></div>
-                <div class="hud-item" id="hud-wind"><span>Wind</span><div class="hud-value">0 E</div></div>
+                <div class="hud-item" id="hud-player"><span>שחקן</span><div class="hud-value">שחקן 1</div></div>
+                <div class="hud-item" id="hud-angle"><span>זווית</span><div class="hud-value">45°</div></div>
+                <div class="hud-item" id="hud-power"><span>כוח</span><div class="hud-value">500</div></div>
+                <div class="hud-item" id="hud-weapon"><span>נשק</span><div class="hud-value">טיל</div></div>
+                <div class="hud-item" id="hud-wind"><span>רוח</span><div class="hud-value">0 מזרח</div></div>
             </div>
         </div>
         
         <!-- Message Box -->
-        <div id="message-box">Sample Message</div>
+        <div id="message-box">הודעה לדוגמה</div>
     </div>
 
     <script>
@@ -376,7 +376,7 @@
             shotInProgress: false,
         };
         
-        // --- ADDED: Store last game setup ---
+        // --- Store last game setup ---
         let lastSetup = [];
 
         // --- TOUCH CONTROLS STATE ---
@@ -461,13 +461,11 @@
             const list = document.getElementById('player-setup-list');
             list.innerHTML = '';
             
-            // --- CHANGED: Use last setup if available ---
             if (lastSetup.length > 0) {
                 lastSetup.forEach(config => {
                     addPlayerEntry(config.name, config.type);
                 });
             } else {
-                // Default setup for the very first game
                 addPlayerEntry();
                 addPlayerEntry();
             }
@@ -476,19 +474,19 @@
         function addPlayerEntry(name = '', type = 'human') {
             const list = document.getElementById('player-setup-list');
             if (list.children.length >= 10) {
-                showMessage("Maximum of 10 players.", 1500);
+                showMessage("מקסימום 10 שחקנים.", 1500);
                 return;
             }
             const playerNum = list.children.length + 1;
             const li = document.createElement('li');
             li.className = 'player-entry';
             li.innerHTML = `
-                <span>Player ${playerNum}</span>
-                <input type="text" value="${name || `Player ${playerNum}`}">
+                <span>שחקן ${playerNum}</span>
+                <input type="text" value="${name || `שחקן ${playerNum}`}">
                 <select>
-                    <option value="human">Human</option>
-                    <option value="ai_stupid">Mr. Stupid (AI)</option>
-                    <option value="ai_rifleman">Rifleman (AI)</option>
+                    <option value="human">אנושי</option>
+                    <option value="ai_stupid">מר טיפש (AI)</option>
+                    <option value="ai_rifleman">רובאי (AI)</option>
                 </select>
                 <button class="remove-player-btn danger">X</button>
             `;
@@ -496,7 +494,7 @@
             li.querySelector('.remove-player-btn').addEventListener('click', () => {
                  li.remove();
                  Array.from(list.children).forEach((child, index) => {
-                     child.querySelector('span').textContent = `Player ${index + 1}`;
+                     child.querySelector('span').textContent = `שחקן ${index + 1}`;
                  });
             });
             list.appendChild(li);
@@ -506,11 +504,10 @@
         function launchGame() {
              const entries = document.querySelectorAll('#player-setup-list .player-entry');
              if (entries.length < 2) {
-                 showMessage("You need at least 2 players!", 1500);
+                 showMessage("צריך לפחות 2 שחקנים!", 1500);
                  return;
              }
 
-             // --- CHANGED: Save the current setup ---
              lastSetup = [];
              GameState.players = Array.from(entries).map((entry, i) => {
                  const input = entry.querySelector('input');
@@ -551,7 +548,7 @@
             GameState.currentPlayerIndex = 0;
             updateUI();
             updateHUD();
-            showMessage(`Round ${GameState.round}! Fight!`);
+            showMessage(`סיבוב ${GameState.round}! הילחם!`);
         }
         
         // --- Terrain ---
@@ -695,8 +692,8 @@
                 const powerChange = slowMove ? 5 : 20;
                 if (Input.keys.has('ArrowUp')) player.power = Math.min(MAX_POWER, player.power + powerChange);
                 if (Input.keys.has('ArrowDown')) player.power = Math.max(0, player.power - powerChange);
-                if (Input.keys.has('ArrowLeft')) player.angle = Math.min(180, player.angle + angleChange);
-                if (Input.keys.has('ArrowRight')) player.angle = Math.max(0, player.angle - angleChange);
+                if (Input.keys.has('ArrowRight')) player.angle = Math.min(180, player.angle + angleChange);
+                if (Input.keys.has('ArrowLeft')) player.angle = Math.max(0, player.angle - angleChange);
                 if (Input.keys.has(' ')) {
                     fireWeapon();
                     Input.keys.delete(' ');
@@ -794,7 +791,7 @@
                         if (tank.health <= 0) {
                             tank.health = 0;
                             tank.isAlive = false;
-                            showMessage(`${tank.name} destroyed!`);
+                            showMessage(`${tank.name} הושמד!`);
                         }
                     }
                 }
@@ -816,7 +813,7 @@
             const livingPlayers = GameState.players.filter(p => p.isAlive);
             if(livingPlayers.length <= 1) {
                 GameState.current = 'GAMEOVER'; 
-                showMessage(livingPlayers.length === 1 ? `${livingPlayers[0].name} wins the round!` : "Mutual Destruction!", 5000);
+                showMessage(livingPlayers.length === 1 ? `${livingPlayers[0].name} ניצח בסיבוב!` : "השמדה הדדית!", 5000);
                  setTimeout(() => {
                     GameState.round++;
                     GameState.players.forEach(p => { p.health = 100; });
@@ -908,7 +905,7 @@
             ctx.font = 'bold 20px ' + getComputedStyle(document.body).fontFamily;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText("FIRE", TouchState.fireButton.x + TouchState.fireButton.width / 2, TouchState.fireButton.y + TouchState.fireButton.height / 2);
+            ctx.fillText("אש", TouchState.fireButton.x + TouchState.fireButton.width / 2, TouchState.fireButton.y + TouchState.fireButton.height / 2);
         }
 
         function render() {
@@ -925,14 +922,13 @@
                 if(p.isAlive) {
                     const tankBaseY = p.y - 10, tankCenterX = p.x;
                     
-                    // --- CHANGED: More detailed tank drawing ---
                     // Treads
-                    ctx.fillStyle = '#333'; // Dark grey for treads
-                    ctx.fillRect(tankCenterX - 12, tankBaseY + 5, 24, 5); // Main tread shape
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(tankCenterX - 12, tankBaseY + 5, 24, 5);
                     ctx.fillStyle = '#555';
                     ctx.beginPath();
-                    ctx.arc(tankCenterX - 7, tankBaseY + 7, 4, 0, Math.PI * 2); // Left wheel
-                    ctx.arc(tankCenterX + 7, tankBaseY + 7, 4, 0, Math.PI * 2); // Right wheel
+                    ctx.arc(tankCenterX - 7, tankBaseY + 7, 4, 0, Math.PI * 2);
+                    ctx.arc(tankCenterX + 7, tankBaseY + 7, 4, 0, Math.PI * 2);
                     ctx.fill();
 
                     // Body
@@ -947,15 +943,15 @@
                     // Turret Barrel
                     const angleRad = -p.angle * Math.PI / 180;
                     ctx.save();
-                    ctx.translate(tankCenterX, tankBaseY); // Pivot from turret center
+                    ctx.translate(tankCenterX, tankBaseY);
                     ctx.rotate(angleRad);
                     ctx.fillStyle = 'grey';
-                    ctx.fillRect(3, -2, 15, 4); // Start barrel just outside the turret base
+                    ctx.fillRect(3, -2, 15, 4);
                     ctx.restore();
                     
                     // Health bar
                     ctx.fillStyle = '#f85149';
-                    ctx.fillRect(tankCenterX - 10, tankBaseY - 10, 20, 4); // Adjusted Y position
+                    ctx.fillRect(tankCenterX - 10, tankBaseY - 10, 20, 4);
                     ctx.fillStyle = '#2fb946';
                     ctx.fillRect(tankCenterX - 10, tankBaseY - 10, 20 * (p.health / 100), 4);
                 }
@@ -979,22 +975,16 @@
             
             // Draw explosions
             GameState.explosions.forEach(exp => {
-                const lifeRatio = exp.life / 30; // Goes from 1 down to 0
+                const lifeRatio = exp.life / 30;
                 const currentRadius = exp.radius * (1 - lifeRatio);
-
-                // Outer red glow
-                ctx.fillStyle = `rgba(255, 0, 0, ${lifeRatio * 0.5})`; // Fades out
+                ctx.fillStyle = `rgba(255, 0, 0, ${lifeRatio * 0.5})`;
                 ctx.beginPath();
                 ctx.arc(exp.x, exp.y, currentRadius, 0, Math.PI * 2);
                 ctx.fill();
-
-                // Middle orange fireball
                 ctx.fillStyle = `rgba(255, 165, 0, ${lifeRatio * 0.8})`;
                 ctx.beginPath();
                 ctx.arc(exp.x, exp.y, currentRadius * 0.7, 0, Math.PI * 2);
                 ctx.fill();
-
-                // Inner white-hot core
                 ctx.fillStyle = `rgba(255, 255, 224, ${lifeRatio})`;
                 ctx.beginPath();
                 ctx.arc(exp.x, exp.y, currentRadius * 0.35, 0, Math.PI * 2);
@@ -1025,8 +1015,8 @@
             document.querySelector('#hud-player .hud-value').textContent = player.name;
             document.querySelector('#hud-angle .hud-value').textContent = `${player.angle.toFixed(1)}°`;
             document.querySelector('#hud-power .hud-value').textContent = player.power.toFixed(0);
-            document.querySelector('#hud-weapon .hud-value').textContent = player.weapon;
-            const windDir = GameState.wind > 0 ? 'E' : 'W';
+            document.querySelector('#hud-weapon .hud-value').textContent = "טיל";
+            const windDir = GameState.wind > 0 ? 'מזרח' : 'מערב';
             document.querySelector('#hud-wind .hud-value').textContent = `${Math.abs(GameState.wind).toFixed(1)} ${windDir}`;
         }
 
