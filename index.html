@@ -401,7 +401,13 @@
 
         function init() {
             setCanvasDimensions();
-            // --- CHANGED: Removed resize event listener to prevent flickering on mobile ---
+            
+            // --- CHANGED: Re-instated a lightweight resize listener ---
+            window.addEventListener('resize', () => {
+                setCanvasDimensions();
+                // We only update dimensions and rely on the constant game loop
+                // to handle the redrawing. This prevents flickering and state loss.
+            });
 
             // UI Event Listeners
             document.getElementById('start-game-btn').addEventListener('click', () => {
@@ -1017,9 +1023,8 @@
         let lastTime = 0;
         function gameLoop(timestamp) {
             update(timestamp - lastTime);
-            if(GameState.current === 'PLAY' || GameState.current === 'GAMEOVER') {
-                render();
-            }
+            // --- CHANGED: Render unconditionally to handle resize correctly ---
+            render();
             requestAnimationFrame(gameLoop);
         }
 
