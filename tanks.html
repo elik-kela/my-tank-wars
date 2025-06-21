@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tank Wars</title>
+    <style>
+        /* --- General Setup --- */
+        :root {
+            --background-color: #0d1117;
+            --primary-text: #c9d1d9;
+            --border-color: #30363d;
+            --accent-color: #58a6ff;
+            --danger-color: #f85149;
+            --success-color: #2fb946;
+            --hud-background: rgba(13, 17, 23, 0.85);
+            --font-family: 'Courier New', Courier, monospace;
+            --modal-bg: #161b22;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--background-color);
+            color: var(--primary-text);
+            font-family: var(--font-family);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- Game Container --- */
+        #game-container {
+            width: 100%;
+            height: 100%;
+            max-width: 1200px; /* Adjust as needed */
+            max-height: 800px; /* Adjust as needed */
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            /* Cursors for touch-like interaction */
+            cursor: default;
+        }
+
+        /* --- Canvas --- */
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background-color: #000;
+        }
+
+        /* --- UI Overlays --- */
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+        
+        /* --- Modals and Panels --- */
+        .modal-panel {
+            background-color: var(--modal-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 90%;
+            width: 600px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+
+        .modal-panel h1, .modal-panel h2 {
+            color: var(--accent-color);
+            margin-top: 0;
+            text-shadow: 0 0 5px var(--accent-color);
+        }
+
+        .modal-panel button {
+            background-color: var(--accent-color);
+            color: var(--background-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-family: var(--font-family);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0.5rem;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        
+        .modal-panel button:hover {
+            background-color: #79c0ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(88, 166, 255, 0.2);
+        }
+        
+        .modal-panel .danger {
+            background-color: var(--danger-color);
+        }
+
+        .modal-panel .danger:hover {
+             background-color: #ff7b72;
+             box-shadow: 0 4px 8px rgba(248, 81, 73, 0.2);
+        }
+
+        /* --- Player Setup --- */
+        #player-setup-list {
+            list-style: none;
+            padding: 0;
+            max-height: 40vh;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+        }
+
+        .player-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background-color: var(--background-color);
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .player-entry input {
+            background-color: #21262d;
+            border: 1px solid var(--border-color);
+            color: var(--primary-text);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            width: 150px;
+        }
+        
+        .player-entry select {
+            background-color: #21262d;
+            border: 1px solid var(--border-color);
+            color: var(--primary-text);
+            padding: 0.25rem;
+            border-radius: 4px;
+        }
+
+        /* --- In-Game HUD --- */
+        #hud {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: var(--hud-background);
+            color: var(--primary-text);
+            padding: 10px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            font-size: 1rem;
+            z-index: 5;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .hud-item {
+            text-align: center;
+        }
+
+        .hud-item span {
+            display: block;
+            font-size: 0.8rem;
+            color: #8b949e;
+        }
+
+        .hud-value {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: var(--accent-color);
+        }
+
+        /* --- Exit Game Button --- */
+        #exit-game-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 6;
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            font-family: var(--font-family);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #exit-game-btn:hover {
+             background-color: #ff7b72;
+        }
+
+
+        #message-box {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--accent-color);
+            color: var(--background-color);
+            padding: 1rem 2rem;
+            border-radius: 6px;
+            z-index: 20;
+            font-size: 1.2rem;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            pointer-events: none;
+        }
+
+        #message-box.visible {
+            opacity: 1;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+
+        <!-- Main Menu Overlay -->
+        <div id="main-menu" class="ui-overlay">
+            <div class="modal-panel">
+                <h1>Tank Wars</h1>
+                <p>A classic artillery game recreated for the web.</p>
+                <button id="start-game-btn">New Game</button>
+            </div>
+        </div>
+
+        <!-- Player Setup Overlay -->
+        <div id="player-setup" class="ui-overlay hidden">
+            <div class="modal-panel">
+                <h2>Game Setup</h2>
+                <ul id="player-setup-list">
+                    <!-- Player entries will be added here by JS -->
+                </ul>
+                <button id="add-player-btn">Add Player</button>
+                <button id="launch-game-btn">Launch Battle!</button>
+                 <button id="back-to-menu-btn" class="danger">Back</button>
+            </div>
+        </div>
+        
+        <!-- Shop Overlay -->
+        <div id="shop" class="ui-overlay hidden">
+             <div class="modal-panel">
+                <h2 id="shop-title">Round Over!</h2>
+                <div id="shop-summary"></div>
+                <h3>Weapon & Item Shop</h3>
+                <div id="shop-items"></div>
+                <button id="end-shopping-btn">Ready for Next Round</button>
+            </div>
+        </div>
+
+        <!-- In-Game UI -->
+        <div id="in-game-ui" class="hidden">
+            <button id="exit-game-btn">Exit Game</button>
+            <div id="hud">
+                <div class="hud-item" id="hud-player"><span>Player</span><div class="hud-value">Player 1</div></div>
+                <div class="hud-item" id="hud-angle"><span>Angle</span><div class="hud-value">45°</div></div>
+                <div class="hud-item" id="hud-power"><span>Power</span><div class="hud-value">500</div></div>
+                <div class="hud-item" id="hud-weapon"><span>Weapon</span><div class="hud-value">Missile</div></div>
+                <div class="hud-item" id="hud-wind"><span>Wind</span><div class="hud-value">0 E</div></div>
+            </div>
+        </div>
+        
+        <!-- Message Box -->
+        <div id="message-box">Sample Message</div>
+    </div>
+
+    <script>
+    // --- Perlin Noise Generator (for terrain) ---
+    const Perlin = new function() {
+        this.p = new Uint8Array(512);
+        this.init = function(seed) {
+            let i, j;
+            const permutation = new Uint8Array([
+                151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,
+                23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,
+                174,20,125,136,171,168,68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,
+                133,230,220,105,92,41,55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,
+                89,18,169,200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123,
+                5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,
+
+                119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,129,22,39,253,19,98,108,110,79,113,
+                224,232,178,185,112,104,218,246,97,228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,
+                145,235,249,14,239,107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,
+                254,138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180
+            ]);
+            for (i=0; i < 256; i++) this.p[i] = permutation[i];
+            for (i=0; i < 256; i++) this.p[i+256] = this.p[i];
+        };
+        this.init();
+        
+        function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+        function lerp(t, a, b) { return a + t * (b - a); }
+        function grad(hash, x, y, z) {
+            const h = hash & 15;
+            const u = h < 8 ? x : y;
+            const v = h < 4 ? y : h === 12 || h === 14 ? x : z;
+            return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+        }
+
+        this.noise = function(x, y, z) {
+            const p = this.p;
+            const X = Math.floor(x) & 255;
+            const Y = Math.floor(y) & 255;
+            const Z = Math.floor(z) & 255;
+            x -= Math.floor(x);
+            y -= Math.floor(y);
+            z -= Math.floor(z);
+            const u = fade(x);
+            const v = fade(y);
+            const w = fade(z);
+            const A = p[X] + Y;
+            const AA = p[A] + Z;
+            const AB = p[A + 1] + Z;
+            const B = p[X + 1] + Y;
+            const BA = p[B] + Z;
+            const BB = p[B + 1] + Z;
+            
+            return lerp(w, lerp(v, lerp(u, grad(p[AA], x, y, z),
+                                          grad(p[BA], x-1, y, z)),
+                                  lerp(u, grad(p[AB], x, y-1, z),
+                                          grad(p[BB], x-1, y-1, z))),
+                          lerp(v, lerp(u, grad(p[AA+1], x, y, z-1),
+                                          grad(p[BA+1], x-1, y, z-1)),
+                                  lerp(u, grad(p[AB+1], x, y-1, z-1),
+                                          grad(p[BB+1], x-1, y-1, z-1))));
+        };
+    };
+
+    window.onload = () => {
+        // --- DOM Elements ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const mainMenu = document.getElementById('main-menu');
+        const playerSetup = document.getElementById('player-setup');
+        const inGameUI = document.getElementById('in-game-ui');
+        const messageBox = document.getElementById('message-box');
+        
+        // --- Game Constants & State ---
+        let W, H; // Canvas dimensions
+        const G = 0.2; // Gravity
+        const MAX_POWER = 1500;
+        
+        const GameState = {
+            current: 'MENU', // MENU, SETUP, PLAY, SHOP, GAMEOVER
+            players: [],
+            currentPlayerIndex: 0,
+            wind: 0,
+            round: 1,
+            projectiles: [],
+            explosions: [],
+            terrain: null,
+            shotInProgress: false,
+        };
+        
+        // --- ADDED: Store last game setup ---
+        let lastSetup = [];
+
+        // --- TOUCH CONTROLS STATE ---
+        const TouchState = {
+            active: false,
+            dragging: null, // 'angle', 'power', or null
+            // Pre-calculated positions for the controls to use during drag
+            angleCenter: { x: 0, y: 0 },
+            angleRadius: 60,
+            powerBar: { x: 0, y: 0, width: 200, height: 10 },
+            fireButton: { x: 0, y: 0, width: 80, height: 40 },
+        };
+
+        // --- Game Setup ---
+        function resizeCanvas() {
+            const container = document.getElementById('game-container');
+            W = container.clientWidth;
+            H = container.clientHeight;
+            canvas.width = W;
+            canvas.height = H;
+        }
+
+        function init() {
+            resizeCanvas();
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                generateTerrain();
+                placeTanks();
+                if (GameState.current === 'PLAY') {
+                    render();
+                }
+            });
+
+            // UI Event Listeners
+            document.getElementById('start-game-btn').addEventListener('click', () => {
+                GameState.current = 'SETUP';
+                updateUI();
+                setupPlayerList();
+            });
+            document.getElementById('back-to-menu-btn').addEventListener('click', () => {
+                GameState.current = 'MENU';
+                updateUI();
+            });
+            document.getElementById('add-player-btn').addEventListener('click', () => addPlayerEntry());
+            document.getElementById('launch-game-btn').addEventListener('click', launchGame);
+            
+            document.getElementById('exit-game-btn').addEventListener('click', () => {
+                GameState.current = 'MENU';
+                TouchState.active = false;
+                updateUI();
+            });
+            
+            // Add listeners for both mouse and touch
+            canvas.addEventListener('mousedown', handlePointerDown);
+            canvas.addEventListener('touchstart', handlePointerDown);
+            canvas.addEventListener('mousemove', handlePointerMove);
+            canvas.addEventListener('touchmove', handlePointerMove);
+            canvas.addEventListener('mouseup', handlePointerUp);
+            canvas.addEventListener('touchend', handlePointerUp);
+
+            gameLoop();
+        }
+
+        // --- UI Management ---
+        function updateUI() {
+            mainMenu.classList.toggle('hidden', GameState.current !== 'MENU');
+            playerSetup.classList.toggle('hidden', GameState.current !== 'SETUP');
+            document.getElementById('shop').classList.toggle('hidden', GameState.current !== 'SHOP');
+            inGameUI.classList.toggle('hidden', GameState.current !== 'PLAY');
+        }
+        
+        function showMessage(text, duration = 2000) {
+            messageBox.textContent = text;
+            messageBox.classList.add('visible');
+            setTimeout(() => {
+                messageBox.classList.remove('visible');
+            }, duration);
+        }
+
+        // --- Player Setup ---
+        function setupPlayerList() {
+            const list = document.getElementById('player-setup-list');
+            list.innerHTML = '';
+            
+            // --- CHANGED: Use last setup if available ---
+            if (lastSetup.length > 0) {
+                lastSetup.forEach(config => {
+                    addPlayerEntry(config.name, config.type);
+                });
+            } else {
+                // Default setup for the very first game
+                addPlayerEntry();
+                addPlayerEntry();
+            }
+        }
+
+        function addPlayerEntry(name = '', type = 'human') {
+            const list = document.getElementById('player-setup-list');
+            if (list.children.length >= 10) {
+                showMessage("Maximum of 10 players.", 1500);
+                return;
+            }
+            const playerNum = list.children.length + 1;
+            const li = document.createElement('li');
+            li.className = 'player-entry';
+            li.innerHTML = `
+                <span>Player ${playerNum}</span>
+                <input type="text" value="${name || `Player ${playerNum}`}">
+                <select>
+                    <option value="human">Human</option>
+                    <option value="ai_stupid">Mr. Stupid (AI)</option>
+                    <option value="ai_rifleman">Rifleman (AI)</option>
+                </select>
+                <button class="remove-player-btn danger">X</button>
+            `;
+            li.querySelector('select').value = type;
+            li.querySelector('.remove-player-btn').addEventListener('click', () => {
+                 li.remove();
+                 Array.from(list.children).forEach((child, index) => {
+                     child.querySelector('span').textContent = `Player ${index + 1}`;
+                 });
+            });
+            list.appendChild(li);
+        }
+
+        // --- Game Launch & Round Start ---
+        function launchGame() {
+             const entries = document.querySelectorAll('#player-setup-list .player-entry');
+             if (entries.length < 2) {
+                 showMessage("You need at least 2 players!", 1500);
+                 return;
+             }
+
+             // --- CHANGED: Save the current setup ---
+             lastSetup = [];
+             GameState.players = Array.from(entries).map((entry, i) => {
+                 const input = entry.querySelector('input');
+                 const select = entry.querySelector('select');
+                 lastSetup.push({ name: input.value, type: select.value });
+                 return createPlayer(input.value, select.value, i);
+             });
+             
+             startNewRound();
+        }
+
+        function createPlayer(name, type, index) {
+            const numPlayers = lastSetup.length;
+            const padding = 50;
+            const playableWidth = W - padding * 2;
+            const zoneWidth = playableWidth / numPlayers;
+            const zoneStart = padding + index * zoneWidth;
+            const internalPadding = 20;
+            const randomX = zoneStart + internalPadding + Math.random() * (zoneWidth - internalPadding * 2);
+
+            return {
+                id: index, name, type,
+                x: randomX, y: 0,
+                health: 100, money: 1000, angle: 45, power: 500,
+                color: `hsl(${index * 360 / 10}, 80%, 60%)`, isAlive: true,
+                weapon: 'missile', inventory: { 'missile': 99 },
+            };
+        }
+        
+        function startNewRound() {
+            GameState.current = 'PLAY';
+            GameState.projectiles = [];
+            GameState.explosions = [];
+            GameState.shotInProgress = false;
+            GameState.wind = (Math.random() - 0.5) * 20;
+            generateTerrain();
+            placeTanks();
+            GameState.currentPlayerIndex = 0;
+            updateUI();
+            updateHUD();
+            showMessage(`Round ${GameState.round}! Fight!`);
+        }
+        
+        // --- Terrain ---
+        function generateTerrain() {
+            GameState.terrain = ctx.createImageData(W, H);
+            const data = GameState.terrain.data;
+            const terrainColor = { r: 139, g: 69, b: 19 };
+            const heights = [];
+            for (let x = 0; x < W; x++) {
+                const noiseVal = Perlin.noise(x * 0.005, GameState.round, 0);
+                heights[x] = H * 0.7 + noiseVal * H * 0.15;
+            }
+            for (let x = 0; x < W; x++) {
+                for (let y = 0; y < H; y++) {
+                    const i = (y * W + x) * 4;
+                    if (y > heights[x]) {
+                        data[i] = terrainColor.r + (Math.random() - 0.5) * 20;
+                        data[i + 1] = terrainColor.g + (Math.random() - 0.5) * 20;
+                        data[i + 2] = terrainColor.b;
+                        data[i + 3] = 255;
+                    } else {
+                        data[i + 3] = 0;
+                    }
+                }
+            }
+        }
+        
+        function placeTanks() {
+            GameState.players.forEach(p => {
+                if(p.isAlive) {
+                    for(let y = 0; y < H; y++) {
+                        if (getTerrainPixelAlpha(Math.round(p.x), y) > 0) {
+                            p.y = y;
+                            break;
+                        }
+                    }
+                }
+            });
+        }
+        
+        function getTerrainPixelAlpha(x, y) {
+            if (!GameState.terrain || x < 0 || x >= W || y < 0 || y >= H) return 0;
+            const index = (Math.floor(y) * W + Math.floor(x)) * 4;
+            return GameState.terrain.data[index + 3];
+        }
+        
+        function destroyTerrain(cx, cy, radius) {
+            const data = GameState.terrain.data;
+            const r2 = radius * radius;
+            const startX = Math.max(0, Math.floor(cx - radius)), endX = Math.min(W, Math.floor(cx + radius));
+            const startY = Math.max(0, Math.floor(cy - radius)), endY = Math.min(H, Math.floor(cy + radius));
+            for (let y = startY; y < endY; y++) {
+                for (let x = startX; x < endX; x++) {
+                    const dx = x - cx, dy = y - cy;
+                    if (dx*dx + dy*dy < r2) data[(y * W + x) * 4 + 3] = 0;
+                }
+            }
+        }
+        
+        // --- Input Handling ---
+        function getPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function handlePointerDown(e) {
+            e.preventDefault();
+            const pos = getPointerPos(e);
+            const player = GameState.players[GameState.currentPlayerIndex];
+
+            if (GameState.shotInProgress || player.type.startsWith('ai_')) return;
+
+            // Check if activating controls by tapping tank
+            const dx = pos.x - player.x, dy = pos.y - player.y;
+            if (Math.sqrt(dx*dx + dy*dy) < 20) {
+                TouchState.active = !TouchState.active;
+                return;
+            }
+
+            if (!TouchState.active) return;
+            
+            // Check for dragging controls or pressing fire button
+            const angleHandlePos = getAngleHandlePos(player);
+            if (Math.sqrt(Math.pow(pos.x - angleHandlePos.x, 2) + Math.pow(pos.y - angleHandlePos.y, 2)) < 15) {
+                TouchState.dragging = 'angle';
+            } else if (pos.x > TouchState.powerBar.x && pos.x < TouchState.powerBar.x + TouchState.powerBar.width &&
+                       pos.y > TouchState.powerBar.y - 10 && pos.y < TouchState.powerBar.y + TouchState.powerBar.height + 10) {
+                TouchState.dragging = 'power';
+                updatePowerFromPos(pos.x); // Snap to click
+            } else if (pos.x > TouchState.fireButton.x && pos.x < TouchState.fireButton.x + TouchState.fireButton.width &&
+                       pos.y > TouchState.fireButton.y && pos.y < TouchState.fireButton.y + TouchState.fireButton.height) {
+                fireWeapon();
+                TouchState.active = false;
+            } else {
+                // Deactivate if tapping outside controls
+                TouchState.active = false;
+            }
+        }
+
+        function handlePointerMove(e) {
+            if (!TouchState.dragging) return;
+            e.preventDefault();
+            const pos = getPointerPos(e);
+            const player = GameState.players[GameState.currentPlayerIndex];
+
+            if (TouchState.dragging === 'angle') {
+                const dx = pos.x - TouchState.angleCenter.x;
+                const dy = pos.y - TouchState.angleCenter.y;
+                const rad = Math.atan2(-dy, dx); // Y is inverted for angle calc
+                player.angle = Math.max(0, Math.min(180, rad * 180 / Math.PI));
+            } else if (TouchState.dragging === 'power') {
+                updatePowerFromPos(pos.x);
+            }
+            updateHUD();
+        }
+        
+        function updatePowerFromPos(x) {
+            const player = GameState.players[GameState.currentPlayerIndex];
+            const clampedX = Math.max(TouchState.powerBar.x, Math.min(x, TouchState.powerBar.x + TouchState.powerBar.width));
+            const powerRatio = (clampedX - TouchState.powerBar.x) / TouchState.powerBar.width;
+            player.power = Math.round(powerRatio * MAX_POWER);
+        }
+
+        function handlePointerUp(e) {
+            TouchState.dragging = null;
+        }
+
+        const Input = {
+            keys: new Set(),
+            init: () => {
+                window.addEventListener('keydown', e => Input.keys.add(e.key));
+                window.addEventListener('keyup', e => Input.keys.delete(e.key));
+            },
+            update: () => {
+                const player = GameState.players[GameState.currentPlayerIndex];
+                if (!player || player.type !== 'human' || GameState.shotInProgress || GameState.current !== 'PLAY') return;
+                const slowMove = Input.keys.has('Shift');
+                const angleChange = slowMove ? 0.5 : 2;
+                const powerChange = slowMove ? 5 : 20;
+                if (Input.keys.has('ArrowUp')) player.power = Math.min(MAX_POWER, player.power + powerChange);
+                if (Input.keys.has('ArrowDown')) player.power = Math.max(0, player.power - powerChange);
+                if (Input.keys.has('ArrowLeft')) player.angle = Math.min(180, player.angle + angleChange);
+                if (Input.keys.has('ArrowRight')) player.angle = Math.max(0, player.angle - angleChange);
+                if (Input.keys.has(' ')) {
+                    fireWeapon();
+                    Input.keys.delete(' ');
+                }
+                updateHUD();
+            }
+        };
+        Input.init();
+
+        // --- Game Logic ---
+        function update() {
+            if (GameState.current !== 'PLAY') return;
+            Input.update();
+            updateProjectiles();
+            updateExplosions();
+            applyTankGravity();
+            const actionIsResolved = GameState.projectiles.length === 0 && GameState.explosions.length === 0;
+            if (GameState.shotInProgress && actionIsResolved) {
+                nextTurn();
+            }
+            const currentPlayer = GameState.players[GameState.currentPlayerIndex];
+            if (!GameState.shotInProgress && actionIsResolved && currentPlayer.isAlive && currentPlayer.type.startsWith('ai_')) {
+                 runAILogic(currentPlayer);
+            }
+        }
+        
+        function applyTankGravity() {
+            GameState.players.forEach(p => {
+                if (p.isAlive) {
+                    const groundY = findGround(Math.round(p.x), Math.round(p.y));
+                    if (p.y < groundY) p.y = Math.min(p.y + G * 2, groundY);
+                }
+            });
+        }
+        
+        function findGround(x, startY) {
+            for (let y = startY; y < H; y++) {
+                if (getTerrainPixelAlpha(x, y) > 0) return y;
+            }
+            return H + 100;
+        }
+
+        function fireWeapon() {
+            if(GameState.shotInProgress) return;
+            GameState.shotInProgress = true;
+            TouchState.active = false; // Hide controls after firing
+            const player = GameState.players[GameState.currentPlayerIndex];
+            const angleRad = -player.angle * Math.PI / 180;
+            const velocity = player.power / 75;
+            GameState.projectiles.push({
+                x: player.x, y: player.y - 15,
+                vx: Math.cos(angleRad) * velocity, vy: Math.sin(angleRad) * velocity,
+                ownerId: player.id, path: [], pathCounter: 0 
+            });
+        }
+        
+        function updateProjectiles() {
+            for (let i = GameState.projectiles.length - 1; i >= 0; i--) {
+                const p = GameState.projectiles[i];
+                p.vx += GameState.wind / 1000;
+                p.vy += G;
+                p.x += p.vx;
+                p.y += p.vy;
+                p.pathCounter++;
+                if (p.pathCounter % 2 === 0) p.path.push({ x: p.x, y: p.y });
+                let hit = false;
+                if(p.x < 0 || p.x > W || p.y > H) {
+                    hit = true;
+                } else if(getTerrainPixelAlpha(p.x, p.y) > 0) {
+                    createExplosion(p.x, p.y, 30, p.ownerId);
+                    hit = true;
+                } else {
+                    for(const tank of GameState.players) {
+                        if (tank.isAlive && tank.id !== p.ownerId) {
+                            const dx = p.x - tank.x, dy = p.y - (tank.y - 5);
+                            if (dx*dx + dy*dy < 12*12) {
+                                createExplosion(p.x, p.y, 30, p.ownerId);
+                                hit = true; break; 
+                            }
+                        }
+                    };
+                }
+                if (hit) GameState.projectiles.splice(i, 1);
+            }
+        }
+        
+        function createExplosion(x, y, radius, ownerId) {
+            destroyTerrain(x, y, radius);
+            GameState.players.forEach(tank => {
+                if (tank.isAlive) {
+                    const dx = x - tank.x, dy = y - (tank.y - 5), dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < radius) {
+                        const damage = Math.round(50 * (1 - dist / radius));
+                        tank.health -= damage;
+                        if (tank.health <= 0) {
+                            tank.health = 0;
+                            tank.isAlive = false;
+                            showMessage(`${tank.name} destroyed!`);
+                        }
+                    }
+                }
+            });
+            GameState.explosions.push({ x, y, radius, life: 30 });
+        }
+
+        function updateExplosions() {
+             for (let i = GameState.explosions.length - 1; i >= 0; i--) {
+                const exp = GameState.explosions[i];
+                exp.life--;
+                if(exp.life <= 0) GameState.explosions.splice(i, 1);
+             }
+        }
+        
+        function nextTurn() {
+            GameState.shotInProgress = false;
+            TouchState.active = false;
+            const livingPlayers = GameState.players.filter(p => p.isAlive);
+            if(livingPlayers.length <= 1) {
+                GameState.current = 'GAMEOVER'; 
+                showMessage(livingPlayers.length === 1 ? `${livingPlayers[0].name} wins the round!` : "Mutual Destruction!", 5000);
+                 setTimeout(() => {
+                    GameState.round++;
+                    GameState.players.forEach(p => { p.health = 100; });
+                    GameState.current = 'MENU';
+                    updateUI();
+                }, 5000);
+                return;
+            }
+            let nextPlayerFound = false;
+            let count = GameState.players.length;
+            while(!nextPlayerFound && count-- > 0) {
+                GameState.currentPlayerIndex = (GameState.currentPlayerIndex + 1) % GameState.players.length;
+                if(GameState.players[GameState.currentPlayerIndex].isAlive) nextPlayerFound = true;
+            }
+            updateHUD();
+        }
+        
+        function runAILogic(aiPlayer) {
+            GameState.shotInProgress = true; // Prevent player input during AI "thinking"
+            if (aiPlayer.type === 'ai_stupid') {
+                aiPlayer.angle = Math.random() * 180;
+                aiPlayer.power = Math.random() * MAX_POWER;
+            } else if (aiPlayer.type === 'ai_rifleman') {
+                const targets = GameState.players.filter(p => p.isAlive && p.id !== aiPlayer.id);
+                if (targets.length > 0) {
+                    const target = targets[Math.floor(Math.random() * targets.length)];
+                    const dx = target.x - aiPlayer.x, dy = target.y - aiPlayer.y;
+                    const targetAngleRad = Math.atan2(dy, dx);
+                    aiPlayer.angle = -targetAngleRad * 180 / Math.PI;
+                    aiPlayer.power = 800 + Math.sqrt(dx*dx + dy*dy) * 1.5;
+                }
+            }
+            setTimeout(() => {
+                // Fire weapon by setting projectile, not calling fireWeapon, to keep shotInProgress logic clean
+                const angleRad = -aiPlayer.angle * Math.PI / 180;
+                const velocity = aiPlayer.power / 75;
+                GameState.projectiles.push({
+                    x: aiPlayer.x, y: aiPlayer.y - 15,
+                    vx: Math.cos(angleRad) * velocity, vy: Math.sin(angleRad) * velocity,
+                    ownerId: aiPlayer.id, path: [], pathCounter: 0 
+                });
+            }, 1000 + Math.random() * 1000);
+        }
+
+        // --- Rendering ---
+        function getAngleHandlePos(player) {
+            const rad = -player.angle * Math.PI / 180;
+            return {
+                x: TouchState.angleCenter.x + TouchState.angleRadius * Math.cos(rad),
+                y: TouchState.angleCenter.y + TouchState.angleRadius * Math.sin(rad)
+            };
+        }
+
+        function drawTouchControls(player) {
+            // --- Angle Control ---
+            TouchState.angleCenter.x = player.x;
+            TouchState.angleCenter.y = player.y - 5;
+            // Background arc
+            ctx.beginPath();
+            ctx.arc(TouchState.angleCenter.x, TouchState.angleCenter.y, TouchState.angleRadius, -Math.PI, 0);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 10;
+            ctx.stroke();
+            // Handle
+            const handlePos = getAngleHandlePos(player);
+            ctx.beginPath();
+            ctx.arc(handlePos.x, handlePos.y, 10, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fill();
+
+            // --- Power Control ---
+            TouchState.powerBar.y = player.y + 20;
+            TouchState.powerBar.x = Math.max(10, Math.min(player.x - TouchState.powerBar.width / 2, W - TouchState.powerBar.width - 10));
+            // Background bar
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.fillRect(TouchState.powerBar.x, TouchState.powerBar.y, TouchState.powerBar.width, TouchState.powerBar.height);
+            // Filled bar
+            const powerRatio = player.power / MAX_POWER;
+            ctx.fillStyle = 'rgba(88, 166, 255, 0.8)';
+            ctx.fillRect(TouchState.powerBar.x, TouchState.powerBar.y, TouchState.powerBar.width * powerRatio, TouchState.powerBar.height);
+
+            // --- Fire Button ---
+            TouchState.fireButton.x = TouchState.powerBar.x + (TouchState.powerBar.width / 2) - (TouchState.fireButton.width / 2);
+            TouchState.fireButton.y = TouchState.powerBar.y + TouchState.powerBar.height + 10;
+            
+            ctx.fillStyle = 'rgba(248, 81, 73, 0.9)';
+            ctx.fillRect(TouchState.fireButton.x, TouchState.fireButton.y, TouchState.fireButton.width, TouchState.fireButton.height);
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 20px ' + getComputedStyle(document.body).fontFamily;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText("FIRE", TouchState.fireButton.x + TouchState.fireButton.width / 2, TouchState.fireButton.y + TouchState.fireButton.height / 2);
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, W, H);
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+            skyGrad.addColorStop(0, '#0a1931');
+            skyGrad.addColorStop(1, '#185a9d');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, W, H);
+            if (GameState.terrain) ctx.putImageData(GameState.terrain, 0, 0);
+
+            // Draw players
+            GameState.players.forEach(p => {
+                if(p.isAlive) {
+                    const tankBaseY = p.y - 10, tankCenterX = p.x;
+                    
+                    // --- CHANGED: More detailed tank drawing ---
+                    // Treads
+                    ctx.fillStyle = '#333'; // Dark grey for treads
+                    ctx.fillRect(tankCenterX - 12, tankBaseY + 5, 24, 5); // Main tread shape
+                    ctx.fillStyle = '#555';
+                    ctx.beginPath();
+                    ctx.arc(tankCenterX - 7, tankBaseY + 7, 4, 0, Math.PI * 2); // Left wheel
+                    ctx.arc(tankCenterX + 7, tankBaseY + 7, 4, 0, Math.PI * 2); // Right wheel
+                    ctx.fill();
+
+                    // Body
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(tankCenterX - 10, tankBaseY, 20, 8);
+                    
+                    // Turret base
+                    ctx.beginPath();
+                    ctx.arc(tankCenterX, tankBaseY, 5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Turret Barrel
+                    const angleRad = -p.angle * Math.PI / 180;
+                    ctx.save();
+                    ctx.translate(tankCenterX, tankBaseY); // Pivot from turret center
+                    ctx.rotate(angleRad);
+                    ctx.fillStyle = 'grey';
+                    ctx.fillRect(3, -2, 15, 4); // Start barrel just outside the turret base
+                    ctx.restore();
+                    
+                    // Health bar
+                    ctx.fillStyle = '#f85149';
+                    ctx.fillRect(tankCenterX - 10, tankBaseY - 10, 20, 4); // Adjusted Y position
+                    ctx.fillStyle = '#2fb946';
+                    ctx.fillRect(tankCenterX - 10, tankBaseY - 10, 20 * (p.health / 100), 4);
+                }
+            });
+
+            // Draw paths and projectiles
+            GameState.projectiles.forEach(p => {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                p.path.forEach(point => {
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            });
+            GameState.projectiles.forEach(p => {
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            // Draw explosions
+            GameState.explosions.forEach(exp => {
+                const lifeRatio = exp.life / 30; // Goes from 1 down to 0
+                const currentRadius = exp.radius * (1 - lifeRatio);
+
+                // Outer red glow
+                ctx.fillStyle = `rgba(255, 0, 0, ${lifeRatio * 0.5})`; // Fades out
+                ctx.beginPath();
+                ctx.arc(exp.x, exp.y, currentRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Middle orange fireball
+                ctx.fillStyle = `rgba(255, 165, 0, ${lifeRatio * 0.8})`;
+                ctx.beginPath();
+                ctx.arc(exp.x, exp.y, currentRadius * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Inner white-hot core
+                ctx.fillStyle = `rgba(255, 255, 224, ${lifeRatio})`;
+                ctx.beginPath();
+                ctx.arc(exp.x, exp.y, currentRadius * 0.35, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw player indicator and touch controls
+            const currentPlayer = GameState.players[GameState.currentPlayerIndex];
+            if(currentPlayer && currentPlayer.isAlive && GameState.current === 'PLAY') {
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.moveTo(currentPlayer.x, currentPlayer.y - 35);
+                ctx.lineTo(currentPlayer.x - 5, currentPlayer.y - 25);
+                ctx.lineTo(currentPlayer.x + 5, currentPlayer.y - 25);
+                ctx.closePath();
+                ctx.fill();
+
+                if (TouchState.active) {
+                    drawTouchControls(currentPlayer);
+                }
+            }
+        }
+        
+        function updateHUD() {
+            if (GameState.current !== 'PLAY') return;
+            const player = GameState.players[GameState.currentPlayerIndex];
+            if (!player) return;
+            document.querySelector('#hud-player .hud-value').textContent = player.name;
+            document.querySelector('#hud-angle .hud-value').textContent = `${player.angle.toFixed(1)}°`;
+            document.querySelector('#hud-power .hud-value').textContent = player.power.toFixed(0);
+            document.querySelector('#hud-weapon .hud-value').textContent = player.weapon;
+            const windDir = GameState.wind > 0 ? 'E' : 'W';
+            document.querySelector('#hud-wind .hud-value').textContent = `${Math.abs(GameState.wind).toFixed(1)} ${windDir}`;
+        }
+
+        // --- Main Game Loop ---
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            update(timestamp - lastTime);
+            if(GameState.current === 'PLAY' || GameState.current === 'GAMEOVER') {
+                render();
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- Start the game ---
+        init();
+    };
+
+    </script>
+</body>
+</html>
