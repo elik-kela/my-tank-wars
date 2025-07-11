@@ -400,20 +400,32 @@
         }
 
         function init() {
-            setCanvasDimensions();
-            
-            // --- CHANGED: Re-instated a lightweight resize listener ---
+            // Defer initial dimension setting slightly for layout stabilization
+            setTimeout(() => {
+                setCanvasDimensions();
+                // Game logic dependent on W/H will be called later (e.g., in launchGame)
+                // The gameLoop will pick up correct dimensions for rendering once set.
+            }, 100); // 100ms delay, adjustable
+
+            // Enhanced resize listener
             window.addEventListener('resize', () => {
                 setCanvasDimensions();
-                // We only update dimensions and rely on the constant game loop
-                // to handle the redrawing. This prevents flickering and state loss.
+                // If game is in a state where terrain/tanks are displayed,
+                // they need to be recalculated and redrawn based on new W, H.
+                if (GameState.current === 'PLAY' || GameState.current === 'GAMEOVER') {
+                    if (GameState.terrain) { // Ensure terrain exists before trying to regenerate based on it
+                        generateTerrain(); // Regenerate terrain for new dimensions
+                        placeTanks();    // Replace tanks on the new terrain
+                    }
+                }
+                // The gameLoop, which calls render(), will handle redrawing visible elements.
             });
 
-            // UI Event Listeners
+            // UI Event Listeners (can be set up immediately)
             document.getElementById('start-game-btn').addEventListener('click', () => {
                 GameState.current = 'SETUP';
                 updateUI();
-                setupPlayerList();
+                setupPlayerList(); // setupPlayerList doesn't critically depend on W/H
             });
             document.getElementById('back-to-menu-btn').addEventListener('click', () => {
                 GameState.current = 'MENU';
@@ -428,7 +440,7 @@
                 updateUI();
             });
             
-            // Add listeners for both mouse and touch
+            // Add listeners for both mouse and touch (can be set up immediately)
             canvas.addEventListener('mousedown', handlePointerDown);
             canvas.addEventListener('touchstart', handlePointerDown);
             canvas.addEventListener('mousemove', handlePointerMove);
@@ -436,7 +448,7 @@
             canvas.addEventListener('mouseup', handlePointerUp);
             canvas.addEventListener('touchend', handlePointerUp);
 
-            gameLoop();
+            gameLoop(); // Start the game loop
         }
 
         // --- UI Management ---
