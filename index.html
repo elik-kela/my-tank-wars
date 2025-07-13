@@ -276,11 +276,11 @@
         <div id="in-game-ui" class="hidden">
             <button id="exit-game-btn">צא מהמשחק</button>
             <div id="hud">
-                <div class="hud-item" id="hud-player"><span>שחקן</span><div class="hud-value">שחקן 1</div></div>
-                <div class="hud-item" id="hud-angle"><span>זווית</span><div class="hud-value">45°</div></div>
-                <div class="hud-item" id="hud-power"><span>כוח</span><div class="hud-value">500</div></div>
-                <div class="hud-item" id="hud-weapon"><span>נשק</span><div class="hud-value">טיל</div></div>
-                <div class="hud-item" id="hud-wind"><span>רוח</span><div class="hud-value">0 מזרח</div></div>
+                <div class="hud-item" id="hud-player" title="שחקן נוכחי"><span>👤</span><div class="hud-value">שחקן 1</div></div>
+                <div class="hud-item" id="hud-angle" title="זווית ירי"><span>📐</span><div class="hud-value">45°</div></div>
+                <div class="hud-item" id="hud-power" title="עוצמת ירי"><span>⚡</span><div class="hud-value">500</div></div>
+                <div class="hud-item" id="hud-weapon" title="נשק נוכחי"><span>🎯</span><div class="hud-value">טיל</div></div>
+                <div class="hud-item" id="hud-wind" title="עוצמת רוח וכיוון"><span>🌬️</span><div class="hud-value">0 מזרח</div></div>
             </div>
         </div>
         
@@ -474,7 +474,19 @@
             
             if (lastSetup.length > 0) {
                 lastSetup.forEach(config => {
-                    addPlayerEntry(config.name, config.type);
+                    // When restoring, addPlayerEntry will assign its own default color initially,
+                    // but we need to find that entry and set its color picker value.
+                    // addPlayerEntry no longer takes name, but we need to pass type.
+                    // The color itself is now part of lastSetup.
+                    addPlayerEntry(undefined, config.type);
+                    const list = document.getElementById('player-setup-list');
+                    const lastEntry = list.lastElementChild;
+                    if (lastEntry && config.color) {
+                        const colorInput = lastEntry.querySelector('input[type="color"]');
+                        if (colorInput) {
+                            colorInput.value = config.color;
+                        }
+                    }
                 });
             } else {
                 addPlayerEntry();
@@ -491,9 +503,13 @@
             const playerNum = list.children.length + 1;
             const li = document.createElement('li');
             li.className = 'player-entry';
+            // Default colors for players, can be overridden by color picker
+            const defaultColors = ['#FF4136', '#0074D9', '#2ECC40', '#FFDC00', '#B10DC9', '#FF851B', '#7FDBFF', '#F012BE', '#3D9970', '#AAAAAA'];
+            const playerColor = defaultColors[playerNum - 1] || `#${Math.floor(Math.random()*16777215).toString(16)}`;
+
             li.innerHTML = `
                 <span>שחקן ${playerNum}</span>
-                <input type="text" value="${name || `שחקן ${playerNum}`}">
+                <input type="color" value="${playerColor}" title="בחר צבע טנק">
                 <select>
                     <option value="human">אנושי</option>
                     <option value="ai_stupid">מר טיפש (AI)</option>
@@ -521,16 +537,17 @@
 
              lastSetup = [];
              GameState.players = Array.from(entries).map((entry, i) => {
-                 const input = entry.querySelector('input');
-                 const select = entry.querySelector('select');
-                 lastSetup.push({ name: input.value, type: select.value });
-                 return createPlayer(input.value, select.value, i);
+                 const colorInput = entry.querySelector('input[type="color"]');
+                 const typeSelect = entry.querySelector('select');
+                 const playerName = `שחקן ${i + 1}`; // Default name
+                 lastSetup.push({ color: colorInput.value, type: typeSelect.value }); // Store color instead of name
+                 return createPlayer(playerName, typeSelect.value, i, colorInput.value);
              });
              
              startNewRound();
         }
 
-        function createPlayer(name, type, index) {
+        function createPlayer(name, type, index, color) { // Added color parameter
             const numPlayers = lastSetup.length;
             const padding = 50;
             const playableWidth = W - padding * 2;
@@ -540,10 +557,11 @@
             const randomX = zoneStart + internalPadding + Math.random() * (zoneWidth - internalPadding * 2);
 
             return {
-                id: index, name, type,
+                id: index, name, type, // Name is now "שחקן X"
                 x: randomX, y: 0,
                 health: 100, money: 1000, angle: 45, power: 500,
-                color: `hsl(${index * 360 / 10}, 80%, 60%)`, isAlive: true,
+                color: color, // Use selected color
+                isAlive: true,
                 weapon: 'missile', inventory: { 'missile': 99 },
             };
         }
@@ -931,40 +949,82 @@
             // Draw players
             GameState.players.forEach(p => {
                 if(p.isAlive) {
-                    const tankBaseY = p.y - 10, tankCenterX = p.x;
-                    
-                    // Treads
-                    ctx.fillStyle = '#333';
-                    ctx.fillRect(tankCenterX - 12, tankBaseY + 5, 24, 5);
-                    ctx.fillStyle = '#555';
+                    const scale = 1.4; // Increased scale factor for larger tanks
+                    const bodyWidth = 20 * scale;
+                    const bodyHeight = 10 * scale;
+                    const treadHeight = 7 * scale;
+                    const treadLength = 24 * scale;
+                    const wheelRadius = 5 * scale;
+                    const turretRadius = 6 * scale;
+                    const barrelLength = 18 * scale;
+                    const barrelWidth = 5 * scale;
+
+                    const tankCenterX = p.x;
+                    // Adjusted tankBaseY to account for new, larger treads/body
+                    const tankBaseY = p.y - bodyHeight / 2 - treadHeight / 2;
+
+                    // Treads - more rounded
+                    ctx.fillStyle = '#4A4A4A'; // Darker grey for treads
                     ctx.beginPath();
-                    ctx.arc(tankCenterX - 7, tankBaseY + 7, 4, 0, Math.PI * 2);
-                    ctx.arc(tankCenterX + 7, tankBaseY + 7, 4, 0, Math.PI * 2);
+                    ctx.roundRect(tankCenterX - treadLength / 2, tankBaseY + bodyHeight / 2 - treadHeight / 2, treadLength, treadHeight, 3 * scale);
                     ctx.fill();
 
-                    // Body
-                    ctx.fillStyle = p.color;
-                    ctx.fillRect(tankCenterX - 10, tankBaseY, 20, 8);
-                    
-                    // Turret base
+                    // Wheels (simplified visual, part of treads)
+                    ctx.fillStyle = '#333333';
+                    const wheelOffsetY = tankBaseY + bodyHeight / 2;
                     ctx.beginPath();
-                    ctx.arc(tankCenterX, tankBaseY, 5, 0, Math.PI * 2);
+                    ctx.arc(tankCenterX - treadLength * 0.3, wheelOffsetY, wheelRadius * 0.7, 0, Math.PI * 2);
+                    ctx.arc(tankCenterX, wheelOffsetY, wheelRadius * 0.7, 0, Math.PI * 2);
+                    ctx.arc(tankCenterX + treadLength * 0.3, wheelOffsetY, wheelRadius * 0.7, 0, Math.PI * 2);
                     ctx.fill();
+
+                    // Body - more rounded
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.roundRect(tankCenterX - bodyWidth / 2, tankBaseY - bodyHeight / 2, bodyWidth, bodyHeight, 2 * scale);
+                    ctx.fill();
+                    
+                    // Turret base - slightly larger
+                    ctx.fillStyle = p.color; // Use tank color for turret base
+                    ctx.beginPath();
+                    // Offset turret slightly upwards to sit nicely on the body
+                    const turretCenterY = tankBaseY - bodyHeight / 2 + turretRadius * 0.3;
+                    ctx.arc(tankCenterX, turretCenterY, turretRadius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Turret Outline (for definition)
+                    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                    ctx.lineWidth = 1 * scale;
+                    ctx.stroke();
+
 
                     // Turret Barrel
                     const angleRad = -p.angle * Math.PI / 180;
                     ctx.save();
-                    ctx.translate(tankCenterX, tankBaseY);
+                    ctx.translate(tankCenterX, turretCenterY); // Translate to turret base center
                     ctx.rotate(angleRad);
-                    ctx.fillStyle = 'grey';
-                    ctx.fillRect(3, -2, 15, 4);
+                    ctx.fillStyle = '#6c757d'; // Darker grey for barrel
+                    // Draw barrel extending from the edge of the turret base
+                    ctx.beginPath();
+                    ctx.roundRect(turretRadius * 0.8, -barrelWidth / 2, barrelLength, barrelWidth, 1 * scale);
+                    ctx.fill();
                     ctx.restore();
                     
-                    // Health bar
-                    ctx.fillStyle = '#f85149';
-                    ctx.fillRect(tankCenterX - 10, tankBaseY - 10, 20, 4);
-                    ctx.fillStyle = '#2fb946';
-                    ctx.fillRect(tankCenterX - 10, tankBaseY - 10, 20 * (p.health / 100), 4);
+                    // Health bar - positioned above the tank
+                    const healthBarWidth = bodyWidth * 0.8;
+                    const healthBarHeight = 5 * scale;
+                    const healthBarY = tankBaseY - bodyHeight / 2 - healthBarHeight - (5 * scale); // 5px spacing
+
+                    ctx.fillStyle = 'rgba(248, 81, 73, 0.7)'; // Semi-transparent red for background
+                    ctx.beginPath();
+                    ctx.roundRect(tankCenterX - healthBarWidth / 2, healthBarY, healthBarWidth, healthBarHeight, 1 * scale);
+                    ctx.fill();
+
+                    ctx.fillStyle = 'rgba(47, 185, 70, 0.9)'; // Semi-transparent green for health
+                    const currentHealthWidth = healthBarWidth * (p.health / 100);
+                    ctx.beginPath();
+                    ctx.roundRect(tankCenterX - healthBarWidth / 2, healthBarY, currentHealthWidth, healthBarHeight, 1 * scale);
+                    ctx.fill();
                 }
             });
 
